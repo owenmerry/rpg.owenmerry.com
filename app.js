@@ -26,10 +26,11 @@ mongoose.set('useFindAndModify', false);
  
 // create an instance of an express app
 const app = express();
-const server = require('https').createServer({
-  key: fs.readFileSync('key.pem'),
-  cert: fs.readFileSync('cert.pem')
-}, app);
+var server = require('http').createServer(app);
+// const server = require('https').createServer({
+//   key: fs.readFileSync('key.pem'),
+//   cert: fs.readFileSync('cert.pem')
+// }, app);
 const io = require('socket.io').listen(server);
  
 const players = {};
