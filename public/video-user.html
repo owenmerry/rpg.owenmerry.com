@@ -1,0 +1,136 @@
+<html>
+  <body>
+    <style>
+      #outgoing {
+        width: 600px;
+        word-wrap: break-word;
+        white-space: normal;
+      }
+      #video-block{
+      }
+      #video-block video {
+        width: 200px;
+        height: 200px;
+      }
+    </style> 
+      <textarea id="your-id" placeholder='your id'></textarea>
+      <textarea id="other-id" placeholder='other id'></textarea>
+      <button id='connect'>connect</button>
+      <div>
+        <textarea id="message" placeholder='message'></textarea>
+        <button id='send'>Send</button>
+        <div id='messages'></div>
+      </div>
+    <div id='user-block'></div>
+    <div id='video-block'></div>
+    <pre id="outgoing"></pre>
+    <script src="./assets/frameworks/simplepeer.min.js"></script> 
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+//var Peer = require('simple-peer')
+var socket = io(); 
+var conversationInfo = {};
+var constraints = {
+    video: {
+      width: {max: 320},
+      height: {max: 240},
+      frameRate: {max: 30},
+    },
+    audio: false,
+  };
+
+ // get video/voice stream
+ navigator.mediaDevices.getUserMedia(constraints)
+ .then(gotMedia).catch(() => {})
+  
+ function gotMedia (stream) {
+   var peer = new SimplePeer({ 
+     initiator: location.hash === '#init', 
+     trickle: false,
+     stream: stream 
+    })
+  
+   peer.on('signal', data => {
+     console.log('signal running');
+     document.getElementById('your-id').value = JSON.stringify(data);
+     if(location.hash === '#init'){
+      socket.emit('startConversation', {offer: JSON.stringify(data)});
+     } else{
+      socket.emit('updateConversation', {answer: JSON.stringify(data), offerId: conversationInfo.offerId});
+     }
+   })
+
+   document.getElementById('connect').addEventListener('click', function () {
+      var otherID = JSON.parse(document.getElementById('other-id').value);
+      peer.signal(otherID);
+   });
+
+   // sockets
+   socket.on('offerConversation', function (conversation) {
+      conversationInfo = conversation;
+      var otherID = conversation.offer;
+      document.getElementById('other-id').value = otherID;
+      peer.signal(JSON.parse(otherID));
+   });
+
+   if(location.hash === '#init'){
+    socket.on('answerConversation', function (conversation) {
+        var otherID = conversation.answer;
+        document.getElementById('other-id').value = otherID;
+        peer.signal(JSON.parse(otherID));
+    });
+   }
+
+   document.getElementById('send').addEventListener('click', function () {
+      var message = document.getElementById('message').value;
+      peer.send(message);
+   });
+
+   peer.on('data', function (data){
+    document.getElementById('messages').textContent += data + '\n';
+   });
+
+   peer.on('stream', stream => {
+
+    var video = document.createElement('video');
+    document.getElementById('video-block').appendChild(video);
+
+     // got remote video stream, now let's show it in a video tag
+     // var video = document.querySelector('.video-external');
+  
+     if ('srcObject' in video) {
+       video.srcObject = stream
+     } else {
+      video.src = window.URL.createObjectURL(stream) // for older browsers
+     }
+  
+    video.play()
+   })
+ }
+
+
+
+
+
+   //get users
+   socket.on('allUsers', function (userList) {
+    //empty
+    document.getElementById('user-block').innerHTML = '';
+
+    userList.online.forEach(element => {
+
+      //build user view
+      var user = document.createElement('div');
+      document.getElementById('user-block').appendChild(user);
+      user.innerHTML = 'user: '+ element;
+
+    });
+
+
+
+
+   });
+
+    </script> 
+  </body>
+</html>

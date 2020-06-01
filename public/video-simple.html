@@ -1,0 +1,68 @@
+<html>
+  <body>
+    <style>
+      #outgoing {
+        width: 600px;
+        word-wrap: break-word;
+        white-space: normal;
+      }
+    </style> 
+    <form>
+      <textarea id="incoming"></textarea>
+      <button type="submit">submit</button>
+    </form>
+    <video class='video-local'></video>
+    <video class='video-external'></video>
+    <pre id="outgoing"></pre>
+    <script src="./assets/frameworks/simplepeer.min.js"></script> 
+    <script>
+//var Peer = require('simple-peer')
+ 
+ // get video/voice stream
+ navigator.mediaDevices.getUserMedia({
+   video: true,
+   audio: true
+ }).then(gotMedia).catch(() => {})
+  
+ function gotMedia (stream) {
+   var peer1 = new SimplePeer({ initiator: true, stream: stream })
+   var peer2 = new SimplePeer({ stream: stream })
+  
+   peer1.on('signal', data => {
+     peer2.signal(data)
+   })
+  
+   peer2.on('signal', data => {
+     peer1.signal(data)
+   })
+  
+   peer1.on('stream', stream => {
+     // got remote video stream, now let's show it in a video tag
+     var video = document.querySelector('.video-local');
+  
+     if ('srcObject' in video) {
+       video.srcObject = stream
+     } else {
+       video.src = window.URL.createObjectURL(stream) // for older browsers
+     }
+  
+     video.play()
+   })
+ 
+   peer2.on('stream', stream => {
+     // got remote video stream, now let's show it in a video tag
+     var video = document.querySelector('.video-external');
+     debugger;
+  
+     if ('srcObject' in video) {
+       video.srcObject = stream
+     } else {
+       video.src = window.URL.createObjectURL(stream) // for older browsers
+     }
+  
+     video.play()
+   });
+ }
+    </script> 
+  </body>
+</html>
