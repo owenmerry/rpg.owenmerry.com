@@ -180,14 +180,15 @@ io.on('connection', function (socket) {
 
 
   // check ready
-  socket.on('bothReady',function(readyData){
-    io.to(readyData.to).emit('chatReady', {from: socket.id});
+  socket.on('userReady',function(readyData){
+    io.to(readyData.to).emit('chatReady', {from: socket.id,to:readyData.to});
   });
   socket.on('initUserReady',function(readyData){
-    io.to(readyData.to).emit('isOtherUserReady', {from: socket.id,to:readyData.to});
+    io.to(readyData.to).emit('isReady', {from: socket.id,to:readyData.to});
   });
   socket.on('otherUserReady',function(readyData){
-    io.to(readyData.to).emit('isOtherUserReady', {from: socket.id,to:readyData.to});
+    console.log('other User Ready');
+    io.to(readyData.to).emit('chatReady', {from: socket.id,to:readyData.to});
   });
 
 

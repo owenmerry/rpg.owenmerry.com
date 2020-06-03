@@ -1,27 +1,27 @@
 html,body{
   background-color: black;
-
-}
-
-body{
-  /* display: flex;
-  align-items: center;
-  justify-content: center;
-  height:100vh; */
   color:white;
 }
 
+.content{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height:100vh;
+}
+
+.extra-details{
+  display:none;
+}
 
 #my-video-block{
   position:fixed;
   top:5px;
   right:5px;
-  border:solid 1px white;
 }
 
 #video-block{
   position:fixed;
   bottom:5px;
   left:5px;
-  border:solid 1px white;
 }

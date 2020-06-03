@@ -96,6 +96,14 @@ class ChatScene extends Phaser.Scene {
         }.bind(this));
 
 
+        // join room
+        this.socket.on('isReady', function (readyData) {
+            if(this.myStream !== ''){
+              this.socket.emit('userReady',{to: readyData.from});
+            }
+        }.bind(this));
+
+
 
     }
   
@@ -154,9 +162,31 @@ class ChatScene extends Phaser.Scene {
 //functions
 
 gotMedia(stream) {
-    this.myStream = stream;
-    console.log('got video data');
+  console.log('got video data');
+  this.myStream = stream;
 
+      // start room when have video or tell ready
+      if(this.otherPlayer){
+        console.log('wait for ready');
+        document.getElementById('my-video-block').innerHTML = 'waiting for other user';
+
+        this.socket.on('chatReady',function(){
+          console.log('got ready');
+          console.log('call createroom');
+          this.createRoom(this.otherPlayer);
+        }.bind(this));
+        this.socket.emit('initUserReady',{to: this.otherPlayer,from:this.socket.id});
+    } else{
+        console.log('send ready');
+        document.getElementById('my-video-block').innerHTML = 'waiting for other user';
+        
+        this.socket.emit('otherUserReady',{to: this.readyID,from:this.socket.id});
+        this.createMyVideo();
+    }
+}
+
+createMyVideo() {
+    console.log('create my video');
     //setup my video
     document.getElementById('my-video-block').innerHTML = '';
     var video = document.createElement('video');
@@ -166,25 +196,12 @@ gotMedia(stream) {
     this.showingMyVideo = true;
 
     if ('srcObject' in video) {
-    video.srcObject = stream
+    video.srcObject = this.myStream
     } else {
-    video.src = window.URL.createObjectURL(this.stream) // for older browsers
+    video.src = window.URL.createObjectURL(this.myStream) // for older browsers
     }
 
     video.play();
-
-    // start room when have video or tell ready
-    if(this.otherPlayer){
-        console.log('wait for ready');
-
-        //this.socket.emit('initUserReady',{to: this.otherPlayer,from:this.socket.id});
-        //this.socket.on('chatReady',function(){
-          console.log('call createroom');
-          this.createRoom(this.otherPlayer);
-        //});
-    } else{
-        //this.socket.emit('otherUserReady',{to: this.readyID,from:this.socket.id});
-    }
 };
 
 closeChat(){
@@ -338,9 +355,13 @@ cleanScreen() {
 
 createRoom(user){
 
-    //this.leaveRoom();
-    
+    //clean up screen
+    this.leaveRoom();
+
     //create my video
+    this.createMyVideo();
+    
+    //setup room or join
     this.makeRoomWithUser(user);
   
 }
