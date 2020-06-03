@@ -140,7 +140,7 @@ io.on('connection', function (socket) {
   // join or create room
   socket.on('createOrJoinRoom', function (roomData) {
     console.log('join or create room');
-    io.to(roomData.addUser).emit('startChat', {});
+    io.to(roomData.addUser).emit('startChat', {from: socket.id});
 
     var enterRoom = '';
 
@@ -176,6 +176,18 @@ io.on('connection', function (socket) {
     users[socket.id].room = '';
     io.emit('removeUser', socket.id);
     io.emit('allUsers', users);
+  });
+
+
+  // check ready
+  socket.on('bothReady',function(readyData){
+    io.to(readyData.to).emit('chatReady', {from: socket.id});
+  });
+  socket.on('initUserReady',function(readyData){
+    io.to(readyData.to).emit('isOtherUserReady', {from: socket.id,to:readyData.to});
+  });
+  socket.on('otherUserReady',function(readyData){
+    io.to(readyData.to).emit('isOtherUserReady', {from: socket.id,to:readyData.to});
   });
 
 

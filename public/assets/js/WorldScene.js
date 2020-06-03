@@ -52,7 +52,7 @@ class WorldScene extends Phaser.Scene {
       // start chat
       this.socket.on('startChat', function (chatData) {
         this.socket.removeAllListeners();
-        this.scene.start('ChatScene',{ socket: this.socket,  });
+        this.scene.start('ChatScene',{ socket: this.socket, readyID: chatData.from });
       }.bind(this));
      
       // listen new player

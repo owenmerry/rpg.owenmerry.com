@@ -8,6 +8,7 @@ class ChatScene extends Phaser.Scene {
         this.showingMyVideo = false;
         this.myUserID = this.socket.id;
         this.otherPlayer = data.otherPlayer;
+        this.readyID = data.readyID;
 
         this.userServerData = [];
         this.peerList = {};
@@ -172,14 +173,22 @@ gotMedia(stream) {
 
     video.play();
 
-    // start room when have video
+    // start room when have video or tell ready
     if(this.otherPlayer){
-        console.log('call createroom');
-        this.createRoom(this.otherPlayer);
+        console.log('wait for ready');
+
+        //this.socket.emit('initUserReady',{to: this.otherPlayer,from:this.socket.id});
+        //this.socket.on('chatReady',function(){
+          console.log('call createroom');
+          this.createRoom(this.otherPlayer);
+        //});
+    } else{
+        //this.socket.emit('otherUserReady',{to: this.readyID,from:this.socket.id});
     }
 };
 
 closeChat(){
+    this.leaveRoom();
     this.socket.removeAllListeners();
     document.getElementById('my-video-block').innerHTML = '';
     this.scene.start('WorldScene',{ socket: this.socket });
@@ -298,9 +307,6 @@ makeRoomWithUser(addUser){
 
 joinRoom(joinRoom) {
 
-    //create my video
-    //this.createMyVideo();
-
     //create others videos
     this.openUsersFromList(joinRoom.users);
 
@@ -325,7 +331,7 @@ cleanScreen() {
       if(this.peerList[user]){
         this.peerList[user].destroy();
       }
-    });
+    }.bind(this));
   }
 }
 
