@@ -4,8 +4,16 @@ html,body{
 }
 
 body{
-  display: flex;
+  /* display: flex;
   align-items: center;
   justify-content: center;
-  height:100vh;
+  height:100vh; */
+  color:white;
+}
+
+
+#my-video-block{
+  position:fixed;
+  top:5px;
+  right:5px;
 }

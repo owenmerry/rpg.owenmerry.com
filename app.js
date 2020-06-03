@@ -38,6 +38,9 @@ const conversation = {};
 const users = {
   online: []
 }
+const rooms = [];
+var roomsNum = 0;
+
  
 io.on('connection', function (socket) {
 
@@ -54,6 +57,20 @@ io.on('connection', function (socket) {
     playerId: socket.id,
     videoID: '',
   };
+
+  //video init
+  //setup init conversation   
+    conversation[socket.id] = {
+      users: {},
+  };
+
+  //setup userdata
+  users[socket.id] = {
+    id: socket.id,
+    room: '',
+  }
+
+
 
   // update all other players of the new player
   socket.broadcast.emit('newPlayer', players[socket.id]);
@@ -77,7 +94,9 @@ io.on('connection', function (socket) {
     if (index > -1) {
       users.online.splice(index, 1);
     }
+    delete users[socket.id];
     io.emit('allUsers', users);
+    io.emit('removeUser', socket.id);
   });
  
   // when a player moves, update the player data
@@ -89,8 +108,75 @@ io.on('connection', function (socket) {
     socket.broadcast.emit('playerMoved', players[socket.id]);
   });
 
+
+
+
+
   //video sockets
 
+  //offer
+  socket.on('sendOffer', function (offerData) {
+    console.log('send offer');
+    conversation[socket.id].users[offerData.to] = {
+      to: offerData.to,
+      from: offerData.from,
+      offer: offerData.offer,
+    };
+    // emit to user for answer
+    io.to(offerData.to).emit('reciveOffer', conversation[socket.id].users[offerData.to]);
+  });
+
+  //answer
+  socket.on('sendAnswer', function (answerData) {
+    console.log('send answer');
+      conversation[answerData.to].users[socket.id].answer = answerData.answer;
+
+      // emit to user for answer
+      io.to(answerData.to).emit('reciveAnswer', conversation[answerData.to].users[socket.id]);
+  });
+
+
+
+  // join or create room
+  socket.on('createOrJoinRoom', function (roomData) {
+    console.log('join or create room');
+    io.to(roomData.addUser).emit('startChat', {});
+
+    var enterRoom = '';
+
+    if(users[roomData.addUser].room === ''){
+      console.log('created new room');
+      roomsNum++;
+      rooms['room-'+ roomsNum] = {name:'room-'+ roomsNum, users:[]};
+      rooms['room-'+ roomsNum].users.push(socket.id);
+      rooms['room-'+ roomsNum].users.push(roomData.addUser);
+      users[socket.id].room = 'room-'+ roomsNum;
+      users[roomData.addUser].room = 'room-'+ roomsNum;
+      enterRoom = 'room-'+ roomsNum;
+      // io.to(roomData.addUser).emit('joinRoom', rooms['room-'+ roomsNum]);
+    } else {
+      console.log('joined room');
+      enterRoom = users[roomData.addUser].room;
+      rooms[enterRoom].users.push(socket.id);
+      users[socket.id].room = enterRoom;
+    }
+
+    socket.emit('joinRoom', rooms[enterRoom]);
+    io.emit('allUsers', users);
+  });
+
+  //leave chat
+  socket.on('leaveRoom', function () {
+    console.log('leave room');
+    var removeRoom = users[socket.id].room;
+    if(rooms[removeRoom]){
+      const removeIndex = rooms[removeRoom].users.indexOf(socket.id);
+      if (removeIndex > -1) {rooms[removeRoom].users.splice(removeIndex, 1) }
+    }
+    users[socket.id].room = '';
+    io.emit('removeUser', socket.id);
+    io.emit('allUsers', users);
+  });
 
 
 });
