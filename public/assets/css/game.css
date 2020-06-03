@@ -16,4 +16,12 @@ body{
   position:fixed;
   top:5px;
   right:5px;
+  border:solid 1px white;
+}
+
+#video-block{
+  position:fixed;
+  bottom:5px;
+  left:5px;
+  border:solid 1px white;
 }
