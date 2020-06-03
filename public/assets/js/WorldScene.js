@@ -336,12 +336,14 @@ class WorldScene extends Phaser.Scene {
         // on enter
         if(this.keyEnter.isDown){
           console.log('pressed enter');
+          var foundChat = false;
           this.otherPlayers.getChildren().forEach(function (otherPlayer) {
-            if(this.physics.overlap(this.container, otherPlayer)){
+            if(this.physics.overlap(this.container, otherPlayer) && foundChat === false){
               console.log('start chat',otherPlayer.playerId);
               this.socket.removeAllListeners();
               this.socket.emit('createOrJoinRoom',{addUser: otherPlayer.playerId });
               this.scene.start('ChatScene',{ socket: this.socket, otherPlayer: otherPlayer.playerId });
+              foundChat = true;
             }
           }.bind(this));
         }
