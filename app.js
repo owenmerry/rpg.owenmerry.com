@@ -40,6 +40,8 @@ const users = {
 }
  
 io.on('connection', function (socket) {
+
+  //connected user
   console.log('a user connected: ', socket.id);
   // create a new player and add it to our players object
   players[socket.id] = {
@@ -52,14 +54,18 @@ io.on('connection', function (socket) {
     playerId: socket.id,
     videoID: '',
   };
-  // send the players object to the new player
-  socket.emit('currentPlayers', players);
+
   // update all other players of the new player
   socket.broadcast.emit('newPlayer', players[socket.id]);
 
   users.online.push(socket.id);
   io.emit('allUsers', users);
- 
+
+  // get current players data
+  socket.on('getCurrentPlayers', function () {
+    socket.emit('currentPlayers', players);
+  });
+
   // when a player disconnects, remove them from our players object
   socket.on('disconnect', function () {
     console.log('user disconnected: ', socket.id);
@@ -84,23 +90,7 @@ io.on('connection', function (socket) {
   });
 
   //video sockets
-  socket.on('startConversation', function (converationData) {
-    conversation[socket.id] = {
-      offer: converationData.offer,
-      offerId: socket.id,
-    };
-    // emit to all video chatters
-    socket.broadcast.emit('offerConversation', conversation[socket.id]);
-    //console.log(conversation[socket.id]);
-  });
 
-  socket.on('updateConversation', function (converationData) {
-    conversation[converationData.offerId].answer = converationData.answer;
-    conversation[converationData.offerId].answerId = socket.id;
-    // emit to all video chatters
-    socket.broadcast.emit('answerConversation', conversation[converationData.offerId]);
-    //console.log(conversation[socket.id]);
-  });
 
 
 });

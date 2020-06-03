@@ -34,21 +34,30 @@ class BootScene extends Phaser.Scene {
   }
 
   create() {
-    this.scene.start('WorldScene');
+    //create socket
+    this.socket = io();
+
+    //go to game
+    this.scene.start('WorldScene',{ socket: this.socket });
   }
 }
 
 class WorldScene extends Phaser.Scene {
+  init(data){
+    this.socket = data.socket;
+  }
+
   constructor() {
     super({
-      key: 'WorldScene'
+      key: 'WorldScene',
     });
   }
 
   create() {
 
     //websocket start
-    this.socket = io();
+    //this.socket = io();
+    //console.log('socket called', this.socket.id);
 
     // others group
     this.otherPlayers = this.physics.add.group();
@@ -61,23 +70,32 @@ class WorldScene extends Phaser.Scene {
    
     // user input
     this.cursors = this.input.keyboard.createCursorKeys();
+    this.keyEnter = this.input.keyboard.addKey('ENTER'); 
+    
    
     // create enemies
     //this.createEnemies();
-   
+
     // listen for web socket events
     this.socket.on('currentPlayers', function (players) {
+      console.log('current players',players);
       Object.keys(players).forEach(function (id) {
         if (players[id].playerId === this.socket.id) {
+          console.log('create my player loop');
           this.createPlayer(players[id]);
         } else {
+          console.log('create other players loop');
           this.addOtherPlayers(players[id]);
         }
       }.bind(this));
     }.bind(this));
+
+    // get current players data
+    this.socket.emit('getCurrentPlayers',{});
    
     // listen new player
     this.socket.on('newPlayer', function (playerInfo) {
+      console.log('new player create');
       this.addOtherPlayers(playerInfo);
     }.bind(this));
 
@@ -166,6 +184,7 @@ class WorldScene extends Phaser.Scene {
   }
    
   createPlayer(playerInfo) {
+    console.log('create player');
     // our player sprite created through the physics system
     this.player = this.add.sprite(0, 0, 'player', 6);
     this.player.setTint(playerInfo.tint);
@@ -189,6 +208,7 @@ class WorldScene extends Phaser.Scene {
   }
 
   addOtherPlayers(playerInfo) {
+    console.log('add other players');
     const otherPlayer = this.add.sprite(playerInfo.x, playerInfo.y, 'player', 6);
     otherPlayer.setTint(playerInfo.tint);
     otherPlayer.playerId = playerInfo.playerId;
@@ -297,7 +317,10 @@ moveEnemies () {
 
   update() {
     if (this.container) {
-      this.container.body.setVelocity(0);
+
+      if(this.container.body){
+        this.container.body.setVelocity(0);
+      }
    
       // Horizontal movement
       if (this.cursors.left.isDown) {
@@ -325,19 +348,12 @@ moveEnemies () {
       } else if (this.cursors.down.isDown) {
         this.player.anims.play('down', true);
       } else {
-        this.player.anims.stop();
+        if(this.player.anims){
+          this.player.anims.stop();
+        }
       }
 
-
-      //send data
-      // this.socket.on('playerMovement', function (playerInfo) {
-      //   var playerInfo = {
-      //     flipX: this.player.flipX,
-      //     x: this.player.x,
-      //     y: this.player.y,
-      //   };
-      //   this.addOtherPlayers(playerInfo);
-      // }.bind(this));
+      // send data to server
       if(
         this.cursors.left.isDown ||
         this.cursors.right.isDown ||
@@ -349,11 +365,55 @@ moveEnemies () {
               x: this.container.x,
               y: this.container.y,
             };
-        console.log('send data:', playerInfo);
+        //console.log('send data:', playerInfo);
         this.socket.emit('playerMovement', playerInfo);
         }
 
+
+
+      // on enter
+      if(this.keyEnter.isDown){
+        console.log('pressed enter');
+        this.otherPlayers.getChildren().forEach(function (otherPlayer) {
+          if(this.physics.overlap(this.container, otherPlayer)){
+            console.log('start chat',otherPlayer.playerId);
+            this.scene.start('ChatScene',{ socket: this.socket });
+            //this.socket.emit('playerChat', {});
+          }
+        }.bind(this));
+      }
+
     }
+  }
+}
+
+class ChatScene extends Phaser.Scene {
+  init(data){
+    this.socket = data.socket;
+  }
+
+  constructor() {
+    super({
+      key: 'ChatScene',
+    });
+  }
+
+  create() {
+   
+    // user input
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.keyEnter = this.input.keyboard.addKey('ENTER'); 
+
+  }
+
+  update() {
+
+    // on enter
+    if(this.keyEnter.isDown){
+      this.socket.removeAllListeners();
+      this.scene.start('WorldScene',{ socket: this.socket });
+    }
+
   }
 }
 
@@ -375,7 +435,8 @@ var config = {
   },
   scene: [
     BootScene,
-    WorldScene
+    WorldScene,
+    ChatScene,
   ]
 };
 var game = new Phaser.Game(config);
