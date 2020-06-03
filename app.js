@@ -26,7 +26,7 @@ mongoose.set('useFindAndModify', false);
  
 // create an instance of an express app
 const app = express();
-var server = require('http').createServer(app);
+const server = require('http').createServer(app);
 // const server = require('https').createServer({
 //   key: fs.readFileSync('key.pem'),
 //   cert: fs.readFileSync('cert.pem')
