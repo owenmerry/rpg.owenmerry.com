@@ -9,8 +9,16 @@ class BootScene extends Phaser.Scene {
   preload() {
     // map tiles
     this.load.image('tiles', 'assets/map/spritesheet-extruded.png');
+
+    //map tiles house
+    this.load.image('house-tiles', 'assets/map-house/pixel_house_set_tiles.png');
+    this.load.image('house-items', 'assets/map-house/pixel_house_set_1.3.4.png');
+
     // map in json format
-    this.load.tilemapTiledJSON('map', 'assets/map/map.json');
+    this.load.tilemapTiledJSON('map', 'assets/map-house/level-house.json');
+   // this.load.tilemapTiledJSON('map', 'assets/map/map.json');
+   //this.load.tilemapTiledJSON('map', 'assets/map-house-simple/simple-house.json');
+
     // our two characters
     this.load.spritesheet('player', 'assets/RPG_assets.png', {
       frameWidth: 16,
@@ -96,11 +104,21 @@ class WorldScene extends Phaser.Scene {
     });
    
     // first parameter is the name of the tilemap in tiled
-    var tiles = this.map.addTilesetImage('spritesheet', 'tiles', 16, 16, 1, 2);
+    var tiles = this.map.addTilesetImage('pixel_house_set_tiles', 'house-tiles', 16, 16, 0, 0);
+    var items = this.map.addTilesetImage('pixel_house_set_1.3.4', 'house-items', 16, 16, 0, 0);
    
     // creating the layers
-    this.map.createStaticLayer('Grass', tiles, 0, 0);
-    this.map.createStaticLayer('Obstacles', tiles, 0, 0);
+    this.layerBackgroundFloor = this.map.createStaticLayer('background-floor', tiles, 0, 0);
+    this.layerBackgroundRoom = this.map.createStaticLayer('background-room', tiles, 0, 0);
+    this.layerBackgroundTop = this.map.createStaticLayer('background-top', items, 0, 0);
+
+    this.layerItems = this.map.createStaticLayer('items', items, 0, 0);
+    this.layerItemsTop = this.map.createStaticLayer('items-top', items, 0, 0);
+
+    //setup collisions
+    this.layerBackgroundRoom.setCollisionByExclusion([-1]);
+    this.layerItems.setCollisionByExclusion([-1]);
+    this.layerItemsTop.setCollisionByExclusion([-1]);
    
     // don't go out of the map
     this.physics.world.bounds.width = this.map.widthInPixels;
@@ -150,11 +168,13 @@ class WorldScene extends Phaser.Scene {
   createPlayer(playerInfo) {
     // our player sprite created through the physics system
     this.player = this.add.sprite(0, 0, 'player', 6);
+    this.player.setTint(playerInfo.tint);
    
     this.container = this.add.container(playerInfo.x, playerInfo.y);
     this.container.setSize(16, 16);
     this.physics.world.enable(this.container);
     this.container.add(this.player);
+    this.container.setScale(1.5);
    
     // update camera
     this.updateCamera();
@@ -163,13 +183,17 @@ class WorldScene extends Phaser.Scene {
     this.container.body.setCollideWorldBounds(true);
 
     //collider enemy
-    this.physics.add.collider(this.container, this.spawns);
+    this.physics.add.collider(this.container, this.layerBackgroundRoom);
+    this.physics.add.collider(this.container, this.layerItems);
+    this.physics.add.collider(this.container, this.layerItemsTop);
   }
 
   addOtherPlayers(playerInfo) {
-    const otherPlayer = this.add.sprite(playerInfo.x, playerInfo.y, 'player', 9);
-    otherPlayer.setTint(Math.random() * 0xffffff);
+    const otherPlayer = this.add.sprite(playerInfo.x, playerInfo.y, 'player', 6);
+    otherPlayer.setTint(playerInfo.tint);
     otherPlayer.playerId = playerInfo.playerId;
+    otherPlayer.setSize(16, 16);
+    otherPlayer.setScale(1.5);
     this.otherPlayers.add(otherPlayer);
   }
 
@@ -346,7 +370,7 @@ var config = {
       gravity: {
         y: 0
       },
-      debug: true // set to true to view zones
+      debug: false // set to true to view zones
     }
   },
   scene: [
