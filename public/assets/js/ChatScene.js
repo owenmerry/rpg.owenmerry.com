@@ -143,6 +143,9 @@ class ChatScene extends Phaser.Scene {
         ).catch((err) => {console.log('video had an error',err);});
         console.log('try video data...');
 
+         // music socket
+        this.setupMusicSockets();
+
         //functions
 
   
@@ -373,6 +376,39 @@ leaveRoom(){
 
     this.cleanScreen();
   
+}
+
+
+
+ //music sockets
+
+ setupMusicSockets(){
+  this.socket.on('musicChange', function (musicData) {
+    console.log('musicChange ran',musicData);
+    if(musicData.action === 'play'){
+      player.seekTo(musicData.seekTo);
+      player.playVideo();
+    }
+    if(musicData.action === 'pause'){
+      player.pauseVideo();
+    }
+    if(musicData.action === 'next'){
+      player.nextVideo();
+    }
+    if(musicData.action === 'prev'){
+      player.previousVideo();
+    }
+    if(musicData.action === 'seekTo'){
+      player.seekTo(musicData.seekTo);
+    }
+    if(musicData.action === 'changeVideo'){
+      player.cueVideoById(musicData.videoID);
+    }
+    if(musicData.action === 'volume'){
+      player.setVolume(musicData.volume);
+      console.log('musicChange volume change',musicData);
+    }
+  }.bind(this));
 }
 
 

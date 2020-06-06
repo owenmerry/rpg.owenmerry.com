@@ -19,6 +19,7 @@
   <script src="//cdn.jsdelivr.net/npm/phaser@3.16.2/dist/phaser.min.js"></script>
   <link href="assets/css/game.css" rel="stylesheet">
   <script src="./assets/frameworks/simplepeer.min.js"></script> 
+  <script src="https://www.youtube.com/iframe_api"></script>
   <script src="/socket.io/socket.io.js"></script>
 
   <meta property="og:title" content="Join the 8bit party online with friends or family">
@@ -30,16 +31,33 @@
 
 <body>
   <div id='content' class='content'></div>
-  <div class='extra-details'>
-  <h2>Functions</h2>
-  <div id='leave-chat'>Leave Chat</div>
-  <h2>My User Details</h2>
-  <div id='my-user-block'></div>
-  <h2>Users Online</h2>
-  <div id='user-block'></div>
-  </div>
   <div id='my-video-block'></div>
   <div id='video-block'></div>
+  <div class='extra-details'>
+    <h2>Functions</h2>
+    <div id='leave-chat'>Leave Chat</div>
+    <h2>My User Details</h2>
+    <div id='my-user-block'></div>
+    <h2>Users Online</h2>
+    <div id='user-block'></div>
+  </div>
+  <div class='extra-details'>
+    <div id='video-placeholder'></div>
+    <div id='start'>Go To Start</div>
+    <div id='play'>Play</div>
+    <div id='pause'>Pause</div>
+    <div id='next'>Next</div>
+    <div id='prev'>Previous</div>
+    <div>
+      Add Song:<input id='add-song-input' type='text' /> 
+      <button id='add-song-button'>Add Song</button> 
+    </div>
+    <div>
+      Set Volume:<input id='volume-input' type='text' value='80' /> 
+      <button id='volume-button'>Change Volume</button> 
+    </div>
+  </div>
+  <script src="assets/js/music.js"></script>
   <script src="assets/js/video.js"></script>
   <script src="assets/js/BootScene.js"></script>
   <script src="assets/js/WorldScene.js"></script>

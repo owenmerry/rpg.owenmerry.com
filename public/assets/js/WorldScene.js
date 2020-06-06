@@ -74,6 +74,10 @@ class WorldScene extends Phaser.Scene {
       this.socket.on('playerMoved', function (playerInfo) {
         this.moveOtherPlayer(playerInfo);
       }.bind(this));
+
+
+      // music socket
+      this.setupMusicSockets();
     
     }
      
@@ -275,6 +279,38 @@ class WorldScene extends Phaser.Scene {
       // we move the zone to some other location
       zone.x = Phaser.Math.RND.between(0, this.physics.world.bounds.width);
       zone.y = Phaser.Math.RND.between(0, this.physics.world.bounds.height);
+    }
+
+
+    //music sockets
+
+    setupMusicSockets(){
+      this.socket.on('musicChange', function (musicData) {
+        console.log('musicChange ran',musicData);
+        if(musicData.action === 'play'){
+          player.seekTo(musicData.seekTo);
+          player.playVideo();
+        }
+        if(musicData.action === 'pause'){
+          player.pauseVideo();
+        }
+        if(musicData.action === 'next'){
+          player.nextVideo();
+        }
+        if(musicData.action === 'prev'){
+          player.previousVideo();
+        }
+        if(musicData.action === 'seekTo'){
+          player.seekTo(musicData.seekTo);
+        }
+        if(musicData.action === 'changeVideo'){
+          player.cueVideoById(musicData.videoID);
+        }
+        if(musicData.action === 'volume'){
+          player.setVolume(musicData.volume);
+          console.log('musicChange volume change',musicData);
+        }
+      }.bind(this));
     }
   
     update() {

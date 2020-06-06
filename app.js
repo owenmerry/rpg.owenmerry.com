@@ -192,6 +192,15 @@ io.on('connection', function (socket) {
   });
 
 
+
+
+
+  // music sockets
+  socket.on('musicUpdate', function (musicData) {
+    socket.broadcast.emit('musicChange', musicData);
+  });
+
+
 });
  
 // update express settings
