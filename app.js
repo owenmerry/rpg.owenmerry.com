@@ -147,7 +147,7 @@ io.on('connection', function (socket) {
     if(users[roomData.addUser].room === ''){
       console.log('created new room');
       roomsNum++;
-      rooms['room-'+ roomsNum] = {name:'room-'+ roomsNum, users:[]};
+      rooms['room-'+ roomsNum] = {name:'room-'+ roomsNum, users:[], players:[]};
       rooms['room-'+ roomsNum].users.push(socket.id);
       rooms['room-'+ roomsNum].users.push(roomData.addUser);
       users[socket.id].room = 'room-'+ roomsNum;
@@ -161,7 +161,17 @@ io.on('connection', function (socket) {
       users[socket.id].room = enterRoom;
     }
 
+    rooms[enterRoom].players[socket.id] = {
+      flipX: false,
+      x: 193,
+      y: 296,
+      tint: Math.random() * 0xffffff,
+      playerId: socket.id,
+      videoID: '',
+    };
+
     socket.emit('joinRoom', rooms[enterRoom]);
+    socket.emit('currentPlayersRoom', rooms[enterRoom].players);
     io.emit('allUsers', users);
   });
 

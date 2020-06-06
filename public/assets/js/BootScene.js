@@ -16,6 +16,7 @@ class BootScene extends Phaser.Scene {
   
       // map in json format
       this.load.tilemapTiledJSON('map', 'assets/map-house/level-house.json');
+      this.load.tilemapTiledJSON('conversation', 'assets/map-conversation/level-conversation.json');
      // this.load.tilemapTiledJSON('map', 'assets/map/map.json');
      //this.load.tilemapTiledJSON('map', 'assets/map-house-simple/simple-house.json');
   
