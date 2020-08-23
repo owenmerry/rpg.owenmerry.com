@@ -1,6 +1,7 @@
 class WorldScene extends Phaser.Scene {
     init(data){
       this.socket = data.socket;
+      this.myPlayer = {};
     }
   
     constructor() {
@@ -38,6 +39,7 @@ class WorldScene extends Phaser.Scene {
         Object.keys(players).forEach(function (id) {
           if (players[id].playerId === this.socket.id) {
             console.log('create my player loop');
+            this.myPlayer = players[id];
             this.createPlayer(players[id]);
           } else {
             console.log('create other players loop');
@@ -52,7 +54,7 @@ class WorldScene extends Phaser.Scene {
       // start chat
       this.socket.on('startChat', function (chatData) {
         this.socket.removeAllListeners();
-        this.scene.start('ChatScene',{ socket: this.socket, readyID: chatData.from });
+        this.scene.start('ChatScene',{ socket: this.socket, readyID: chatData.from, myPlayer: this.myPlayer });
       }.bind(this));
      
       // listen new player
@@ -78,6 +80,11 @@ class WorldScene extends Phaser.Scene {
 
       // music socket
       this.setupMusicSockets();
+
+      // log data
+      this.socket.on('log', function (logData) {
+        console.log(logData);
+      }.bind(this));
     
     }
      
@@ -184,14 +191,15 @@ class WorldScene extends Phaser.Scene {
     }
   
     moveOtherPlayer(playerInfo) {
-     // console.log(playerInfo);
-      this.otherPlayers.getChildren().forEach((otherPlayer) => {
-        if(otherPlayer.playerId === playerInfo.playerId){
-          otherPlayer.x = playerInfo.x;
-          otherPlayer.y = playerInfo.y;
-          otherPlayer.flipX = playerInfo.flipX;
-        }
-      });
+      if(playerInfo.from === 'world'){
+        this.otherPlayers.getChildren().forEach((otherPlayer) => {
+          if(otherPlayer.playerId === playerInfo.playerId){
+            otherPlayer.x = playerInfo.x;
+            otherPlayer.y = playerInfo.y;
+            otherPlayer.flipX = playerInfo.flipX;
+          }
+        });
+      }
     }
      
     updateCamera() {
@@ -378,7 +386,7 @@ class WorldScene extends Phaser.Scene {
               console.log('start chat',otherPlayer.playerId);
               this.socket.removeAllListeners();
               this.socket.emit('createOrJoinRoom',{addUser: otherPlayer.playerId });
-              this.scene.start('ChatScene',{ socket: this.socket, otherPlayer: otherPlayer.playerId });
+              this.scene.start('ChatScene',{ socket: this.socket, otherPlayer: otherPlayer.playerId, myPlayer: this.myPlayer});
               foundChat = true;
             }
           }.bind(this));

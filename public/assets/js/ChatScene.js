@@ -1,6 +1,7 @@
 class ChatScene extends Phaser.Scene {
     init(data){
         this.socket = data.socket;
+        this.myPlayer = data.myPlayer;
 
         //variables
         this.myStream = '';
@@ -25,6 +26,12 @@ class ChatScene extends Phaser.Scene {
             if(this.peerList[userID]){
                 this.peerList[userID].destroy();
             }
+            this.otherPlayers.getChildren().forEach(function (player) {
+              if (userID === player.playerId) {
+                player.destroy();
+              }
+            }.bind(this));
+
         }.bind(this));
 
         //users change
@@ -79,6 +86,9 @@ class ChatScene extends Phaser.Scene {
                 }
             })
 
+            //create character
+            this.createCharacters();
+
         }.bind(this));
 
         // recieve answer
@@ -95,14 +105,42 @@ class ChatScene extends Phaser.Scene {
             this.joinRoom(roomData);
         }.bind(this));
 
-
-        // join room
+        // is ready
         this.socket.on('isReady', function (readyData) {
             if(this.myStream !== ''){
               this.socket.emit('userReady',{to: readyData.from});
             }
         }.bind(this));
 
+
+        // update room data
+        this.socket.on('currentPlayersRoom', function (roomData) {
+          console.log('currentPlayersRoom');
+          console.log(roomData);
+          this.roomInData = roomData;
+        }.bind(this));
+
+
+        // listen player moved
+        this.socket.on('playerMoved', function (playerInfo) {
+          this.moveOtherPlayer(playerInfo);
+        }.bind(this));
+
+
+        // show players
+        this.socket.on('roomInfo', function (roomData) {
+          //set data
+          this.roomInData = roomData;
+
+          //create players
+          this.createCharacters()
+        }.bind(this));
+
+
+        // log data
+        this.socket.on('log', function (logData) {
+          console.log(logData);
+        }.bind(this));
 
 
     }
@@ -151,16 +189,17 @@ class ChatScene extends Phaser.Scene {
         this.otherPlayers = this.physics.add.group();
         this.createMap();
 
-        //this.createCharacters();
         this.createPlayer({flipX: false,
-          playerId: "56t_fpihGi5c2W8UAAAS",
-          tint: 6292341.552044989,
+          playerId: "me",
+          tint: this.myPlayer.tint,
           videoID: "",
           x: 193,
           y: 296,
         });
 
-        //functions
+        // get room info
+        this.socket.emit('roomInfo', 'get room info');
+
 
   
   
@@ -218,7 +257,7 @@ class ChatScene extends Phaser.Scene {
                 y: this.container.y,
               };
           //console.log('send data:', playerInfo);
-        // this.socket.emit('playerMovement', playerInfo);
+          this.socket.emit('playerMovement', playerInfo);
           }
   
   
@@ -226,6 +265,15 @@ class ChatScene extends Phaser.Scene {
       // on enter
       if(this.keyEnter.isDown){
         this.closeChat();
+        //this.createCharacters();
+
+        // const otherPlayert = this.add.sprite(193, 296, 'player', 6);
+        // otherPlayert.playerId = 'test';
+        // otherPlayert.setSize(16, 16);
+        // otherPlayert.setScale(1.5);
+        // this.otherPlayers.add(otherPlayert);
+
+
       }
   
       }
@@ -400,7 +448,6 @@ joinRoom(joinRoom) {
     //create others videos
     this.openUsersFromList(joinRoom.users);
 
-
 }
 
 callLeaveRoom() {
@@ -450,6 +497,10 @@ leaveRoom(){
 
 
 
+
+
+
+
  //music sockets
 
  setupMusicSockets(){
@@ -484,6 +535,9 @@ leaveRoom(){
 
 
 
+
+
+
 /// conversation game
 
 createMap() {
@@ -513,6 +567,14 @@ createMap() {
   this.physics.world.bounds.width = this.map.widthInPixels;
   this.physics.world.bounds.height = this.map.heightInPixels;
 }
+
+
+
+
+
+
+
+//player and others
 
 createPlayer(playerInfo) {
   console.log('create player');
@@ -550,17 +612,23 @@ addOtherPlayers(playerInfo) {
 
 
 createCharacters() {
-    console.log('current players room',this.roomInData.players);
-    Object.keys(this.roomInData.players).forEach(function (id) {
-      if (players[id].playerId === this.socket.id) {
-        console.log('create my player loop');
-        this.createPlayer(players[id]);
-      } else {
-        console.log('create other players loop');
-        this.addOtherPlayers(players[id]);
-      }
+    console.log('current players room',this.roomInData.users);
+
+    //remove 
+    this.otherPlayers.getChildren().forEach(function (player) {
+        player.destroy();
     }.bind(this));
-}
+
+    //create all
+        Object.keys(this.roomInData.users).forEach(function (id) {
+          if (this.roomInData.users[id] !== this.socket.id) {
+            if (this.roomInData.players[this.roomInData.users[id]]) {
+              console.log('create other players loop');
+              this.addOtherPlayers(this.roomInData.players[this.roomInData.users[id]]);
+            }
+          }
+        }.bind(this));
+    }
 
 
 updateCamera() {
@@ -569,6 +637,20 @@ updateCamera() {
   this.cameras.main.startFollow(this.container);
   this.cameras.main.roundPixels = true; // avoid tile bleed
 }
+
+
+
+moveOtherPlayer(playerInfo) {
+  if(playerInfo.from === 'room'){
+    this.otherPlayers.getChildren().forEach((otherPlayer) => {
+      if(otherPlayer.playerId === playerInfo.playerId){
+        otherPlayer.x = playerInfo.x;
+        otherPlayer.y = playerInfo.y;
+        otherPlayer.flipX = playerInfo.flipX;
+      }
+    });
+  }
+ }
 
 
 

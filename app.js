@@ -38,7 +38,7 @@ const conversation = {};
 const users = {
   online: []
 }
-const rooms = [];
+const rooms = {};
 var roomsNum = 0;
 
  
@@ -101,11 +101,26 @@ io.on('connection', function (socket) {
  
   // when a player moves, update the player data
   socket.on('playerMovement', function (movementData) {
-    players[socket.id].x = movementData.x;
-    players[socket.id].y = movementData.y;
-    players[socket.id].flipX = movementData.flipX;
-    // emit a message to all players about the player that moved
-    socket.broadcast.emit('playerMoved', players[socket.id]);
+
+   if(users[socket.id].room === ''){
+      players[socket.id].x = movementData.x;
+      players[socket.id].y = movementData.y;
+      players[socket.id].flipX = movementData.flipX;
+
+      socket.broadcast.emit('playerMoved', {...players[socket.id],from: 'world'});
+    } else {
+      if(rooms[users[socket.id].room].players[socket.id]){
+        rooms[users[socket.id].room].players[socket.id].x = movementData.x;
+        rooms[users[socket.id].room].players[socket.id].y = movementData.y;
+        rooms[users[socket.id].room].players[socket.id].flipX = movementData.flipX;
+
+        socket.broadcast.emit('playerMoved', {...rooms[users[socket.id].room].players[socket.id], from: 'room'});
+      }
+    }
+
+    //show all data
+    io.emit('log', { place: 'movement log', users: users, players: players, rooms: rooms});
+
   });
 
 
@@ -147,7 +162,7 @@ io.on('connection', function (socket) {
     if(users[roomData.addUser].room === ''){
       console.log('created new room');
       roomsNum++;
-      rooms['room-'+ roomsNum] = {name:'room-'+ roomsNum, users:[], players:[]};
+      rooms['room-'+ roomsNum] = {name:'room-'+ roomsNum, users:[], players:{}};
       rooms['room-'+ roomsNum].users.push(socket.id);
       rooms['room-'+ roomsNum].users.push(roomData.addUser);
       users[socket.id].room = 'room-'+ roomsNum;
@@ -165,14 +180,31 @@ io.on('connection', function (socket) {
       flipX: false,
       x: 193,
       y: 296,
-      tint: Math.random() * 0xffffff,
+      tint: players[socket.id].tint,
       playerId: socket.id,
       videoID: '',
     };
+    if(!rooms[enterRoom].players[roomData.addUser]){
+      rooms[enterRoom].players[roomData.addUser] = {
+        flipX: false,
+        x: 193,
+        y: 296,
+        tint: players[roomData.addUser].tint,
+        playerId: roomData.addUser,
+        videoID: '',
+      };
+    }
 
     socket.emit('joinRoom', rooms[enterRoom]);
-    socket.emit('currentPlayersRoom', rooms[enterRoom].players);
+    io.emit('roomInfo', rooms[enterRoom]);
     io.emit('allUsers', users);
+  });
+
+
+  // room
+  socket.on('roomInfo',function(roomId){
+    var enterRoom = users[socket.id].room;
+    io.emit('roomInfo', rooms[enterRoom]);
   });
 
   //leave chat
