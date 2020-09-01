@@ -543,7 +543,8 @@ leaveRoom(){
 createMap() {
   // create the map
   this.map = this.make.tilemap({
-    key: 'conversation'
+   // key: 'conversation'
+    key: 'map'
   });
  
   // first parameter is the name of the tilemap in tiled
