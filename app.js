@@ -86,6 +86,16 @@ io.on('connection', function (socket) {
   // when a player disconnects, remove them from our players object
   socket.on('disconnect', function () {
     console.log('user disconnected: ', socket.id);
+
+    //remove from room
+    delete rooms[users[socket.id].room].players[socket.id];
+    delete rooms[users[socket.id].room].players[socket.id];
+    const indexRoom = rooms[users[socket.id].room].users.indexOf(socket.id);
+    if (indexRoom > -1) {
+      rooms[users[socket.id].room].users.splice(indexRoom, 1);
+    }
+
+
     delete players[socket.id];
     // emit a message to all players to remove this player
     io.emit('disconnect', socket.id);
@@ -155,7 +165,11 @@ io.on('connection', function (socket) {
   // join or create room
   socket.on('createOrJoinRoom', function (roomData) {
     console.log('join or create room');
-    io.to(roomData.addUser).emit('startChat', {from: socket.id});
+
+    // have other player add to chat
+    if(roomData.addUser){
+      io.to(roomData.addUser).emit('startChat', {from: socket.id});
+    }
 
     var enterRoom = '';
 
