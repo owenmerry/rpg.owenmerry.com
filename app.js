@@ -129,7 +129,7 @@ io.on('connection', function (socket) {
     }
 
     //show all data
-    io.emit('log', { place: 'movement log', users: users, players: players, rooms: rooms});
+    //io.emit('log', { place: 'movement log', users: users, players: players, rooms: rooms});
 
   });
 

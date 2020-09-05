@@ -138,9 +138,9 @@ class ChatScene extends Phaser.Scene {
 
 
         // log data
-        this.socket.on('log', function (logData) {
-          console.log(logData);
-        }.bind(this));
+        // this.socket.on('log', function (logData) {
+        //   console.log(logData);
+        // }.bind(this));
 
 
     }
