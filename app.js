@@ -147,7 +147,6 @@ io.on('connection', function (socket) {
       from: socket.id,
       offer: offerData.offer,
     };
-    console.log('send offer',offerData.to,conversation[socket.id].users[offerData.to]);
     // emit to user for answer
     io.to(offerData.to).emit('reciveOffer', conversation[socket.id].users[offerData.to]);
   });
@@ -156,14 +155,12 @@ io.on('connection', function (socket) {
   socket.on('sendAnswer', function (answerData) {
     
     io.emit('log', { place: 'send answer', myid: socket.id, users: users, players: players, rooms: rooms, conversation : conversation});
-    
-    //console.log('got answer send to ', conversation, answerData);
+
     if(conversation[answerData.to] 
       && conversation[answerData.to].users[answerData.from]
       ){
       conversation[answerData.to].users[answerData.from].answer = answerData.answer;
       // emit to user for answer
-      console.log('got answer sent to ', answerData.to);
       io.to(answerData.to).emit('reciveAnswer', conversation[answerData.to].users[answerData.from]);
     }
 

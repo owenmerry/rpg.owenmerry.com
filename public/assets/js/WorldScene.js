@@ -390,7 +390,6 @@ class WorldScene extends Phaser.Scene {
                 x: this.container.x,
                 y: this.container.y,
               };
-          //console.log('send data:', playerInfo);
           this.socket.emit('playerMovement', playerInfo);
           }
   
@@ -487,8 +486,6 @@ createNewVideo (ref) {
 
     //create stream and video
     this.peerList[otherID].on('stream', stream => {
-
-      console.log('got stream from ', otherID);
 
       //delete if exist
       if(document.getElementById('video-'+ otherID)){
