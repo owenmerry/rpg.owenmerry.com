@@ -2,6 +2,14 @@ class WorldScene extends Phaser.Scene {
     init(data){
       this.socket = data.socket;
       this.myPlayer = {};
+      this.myStream = '';
+
+      this.myUserID = data.socket.id;
+      this.userServerData = [];
+      this.peerList = {};
+      this.conversationList = [];
+      this.roomInData = {};
+
     }
   
     constructor() {
@@ -15,6 +23,22 @@ class WorldScene extends Phaser.Scene {
       //websocket start
       //this.socket = io();
       //console.log('socket called', this.socket.id);
+
+      var constraints = {
+        video: {
+        width: {max: 320},
+        height: {max: 3200},
+        frameRate: {max: 30},
+        },
+        audio: true,
+    };
+
+      // get video
+      navigator.mediaDevices.getUserMedia(constraints)
+      .then(function (stream) { 
+          this.gotMedia(stream);
+      }.bind(this)
+      ).catch((err) => {console.log('video had an error',err);});
   
       // others group
       this.otherPlayers = this.physics.add.group();
@@ -35,14 +59,11 @@ class WorldScene extends Phaser.Scene {
   
       // listen for web socket events
       this.socket.on('currentPlayers', function (players) {
-        console.log('current players',players);
         Object.keys(players).forEach(function (id) {
           if (players[id].playerId === this.socket.id) {
-            console.log('create my player loop');
             this.myPlayer = players[id];
             this.createPlayer(players[id]);
           } else {
-            console.log('create other players loop');
             this.addOtherPlayers(players[id]);
           }
         }.bind(this));
@@ -59,7 +80,6 @@ class WorldScene extends Phaser.Scene {
      
       // listen new player
       this.socket.on('newPlayer', function (playerInfo) {
-        console.log('new player create');
         this.addOtherPlayers(playerInfo);
       }.bind(this));
   
@@ -80,6 +100,9 @@ class WorldScene extends Phaser.Scene {
 
       // music socket
       this.setupMusicSockets();
+
+      // video sockets 
+      this.setupVideoSockets();
 
       // log data
       // this.socket.on('log', function (logData) {
@@ -157,7 +180,6 @@ class WorldScene extends Phaser.Scene {
     }
      
     createPlayer(playerInfo) {
-      console.log('create player');
       // our player sprite created through the physics system
       this.player = this.add.sprite(0, 0, 'player', 6);
       this.player.setTint(playerInfo.tint);
@@ -181,7 +203,6 @@ class WorldScene extends Phaser.Scene {
     }
   
     addOtherPlayers(playerInfo) {
-      console.log('add other players');
       const otherPlayer = this.add.sprite(playerInfo.x, playerInfo.y, 'player', 6);
       otherPlayer.setTint(playerInfo.tint);
       otherPlayer.playerId = playerInfo.playerId;
@@ -191,7 +212,7 @@ class WorldScene extends Phaser.Scene {
     }
   
     moveOtherPlayer(playerInfo) {
-      if(playerInfo.from === 'world'){
+      //if(playerInfo.from === 'world'){
         this.otherPlayers.getChildren().forEach((otherPlayer) => {
           if(otherPlayer.playerId === playerInfo.playerId){
             otherPlayer.x = playerInfo.x;
@@ -199,7 +220,7 @@ class WorldScene extends Phaser.Scene {
             otherPlayer.flipX = playerInfo.flipX;
           }
         });
-      }
+      //}
     }
      
     updateCamera() {
@@ -294,7 +315,6 @@ class WorldScene extends Phaser.Scene {
 
     setupMusicSockets(){
       this.socket.on('musicChange', function (musicData) {
-        console.log('musicChange ran',musicData);
         if(musicData.action === 'play'){
           player.seekTo(musicData.seekTo);
           player.playVideo();
@@ -316,7 +336,6 @@ class WorldScene extends Phaser.Scene {
         }
         if(musicData.action === 'volume'){
           player.setVolume(musicData.volume);
-          console.log('musicChange volume change',musicData);
         }
       }.bind(this));
     }
@@ -379,11 +398,9 @@ class WorldScene extends Phaser.Scene {
   
         // on enter
         if(this.keyEnter.isDown){
-          console.log('pressed enter');
           var foundChat = false;
           this.otherPlayers.getChildren().forEach(function (otherPlayer) {
             if(this.physics.overlap(this.container, otherPlayer) && foundChat === false){
-              console.log('start chat',otherPlayer.playerId);
               this.socket.removeAllListeners();
               this.socket.emit('createOrJoinRoom',{addUser: otherPlayer.playerId });
               this.scene.start('ChatScene',{ socket: this.socket, otherPlayer: otherPlayer.playerId, myPlayer: this.myPlayer});
@@ -394,4 +411,265 @@ class WorldScene extends Phaser.Scene {
   
       }
     }
+
+
+
+
+
+//=============================
+//    Video functions
+//=============================
+
+gotMedia(stream) {
+  this.myStream = stream;
+
+      // start room when have video or tell ready
+      document.getElementById('my-video-block').innerHTML = 'waiting for other user';
+      this.socket.emit('createOrJoinRoom',{});
+      
+      //this.socket.emit('otherUserReady',{to: this.readyID,from:this.socket.id});
+      this.createMyVideo();
+}
+
+createMyVideo() {
+    //setup my video
+    document.getElementById('my-video-block').innerHTML = '';
+    var video = document.createElement('video');
+    document.getElementById('my-video-block').appendChild(video);
+    video.id = 'video-myvideo';
+    video.muted = true;
+    this.showingMyVideo = true;
+
+    if ('srcObject' in video) {
+    video.srcObject = this.myStream
+    } else {
+    video.src = window.URL.createObjectURL(this.myStream) // for older browsers
+    }
+
+    video.play();
+};
+
+closeChat(){
+    this.leaveRoom();
+    this.socket.removeAllListeners();
+    document.getElementById('my-video-block').innerHTML = '';
+    this.scene.start('WorldScene',{ socket: this.socket });
+}
+
+
+
+// creste new user video
+createNewVideo (ref) {
+
+  var otherID = ref;
+        
+    // get offer
+    this.peerList[otherID] = new SimplePeer({ 
+    initiator: true, 
+    trickle: false,
+    stream: this.myStream 
+    });
+
+    //send offer
+    this.peerList[otherID].on('signal', data => {
+      if(this.conversationList.indexOf(otherID) === -1){
+        this.socket.emit('sendOffer', {to:otherID,from:this.myUserID,offer: JSON.stringify(data)});
+        this.conversationList.push(otherID);
+      }
+    });
+
+    //destory
+    this.peerList[otherID].on('destroy', data => {
+      if(this.peerList[otherID]){
+        delete this.peerList[otherID];
+      }
+    });
+
+    //create stream and video
+    this.peerList[otherID].on('stream', stream => {
+
+      console.log('got stream from ', otherID);
+
+      //delete if exist
+      if(document.getElementById('video-'+ otherID)){
+       // document.getElementById('video-'+ otherID).remove();
+      };
+
+      //create
+      var video = document.createElement('video');
+      document.getElementById('video-block').appendChild(video);
+      video.id = 'video-'+ otherID;
+
+      //setup stream
+      if ('srcObject' in video) {
+        video.srcObject = stream
+      } else {
+        video.src = window.URL.createObjectURL(stream) // for older browsers
+      }
+
+      video.play()
+    });
+}
+
+
+//open all videos
+openActiveUsers(){
+  // create other videos
+  this.userServerData.online.forEach( otherID => {
+  if(otherID !== this.myUserID){
+
+    this.createNewVideo(otherID);
+
+  }
+})
+}
+
+//open users from list
+openUsersFromList(userList){
+  // create other videos
+  userList.forEach( otherID => {
+  if(otherID !== this.socket.id){
+
+    this.createNewVideo(otherID);
+
+  }
+})
+}
+
+makeRoomWithUser(addUser){
+  this.socket.emit('createOrJoinRoom', {addUser: addUser});
+}
+
+joinRoom(joinRoom) {
+
+  //create others videos
+  this.openUsersFromList(joinRoom.users);
+
+}
+
+
+
+setupVideoSockets(){
+
+  //socket listeners
+       // disconnected
+       this.socket.on('removeUser', function (userID) {
+         if(document.getElementById('video-'+ userID)){
+             document.getElementById('video-'+ userID).remove();
+         }
+         if(this.peerList[userID]){
+             this.peerList[userID].destroy();
+         }
+         this.otherPlayers.getChildren().forEach(function (player) {
+           if (userID === player.playerId) {
+             player.destroy();
+           }
+         }.bind(this));
+
+     }.bind(this));
+
+     //users change
+     this.socket.on('allUsers', function (userList) {
+         this.userServerData = userList;
+         //this.showUsers();
+     }.bind(this));
+
+     // recieve offer
+     this.socket.on('reciveOffer', function (offerData) {
+
+         // get answer
+         this.peerList[offerData.from] = new SimplePeer({ 
+         initiator: false, 
+         trickle: false,
+         stream: this.myStream 
+         });
+
+         //send offer
+         this.peerList[offerData.from].on('signal', data => {
+              var sendData = {to:offerData.from,from:offerData.to,answer: JSON.stringify(data)};
+             this.socket.emit('sendAnswer', sendData);
+         })
+
+         //create stream and video
+         this.peerList[offerData.from].on('stream', stream => {
+             var video = document.createElement('video');
+             document.getElementById('video-block').appendChild(video);
+             video.id = 'video-'+ offerData.from;
+         
+             if ('srcObject' in video) {
+             video.srcObject = stream
+             } else {
+             video.src = window.URL.createObjectURL(stream) // for older browsers
+             }
+         
+             video.play()
+         });
+
+
+         // use offer
+         this.peerList[offerData.from].signal(JSON.parse(offerData.offer));
+
+         //destroy
+         this.peerList[offerData.from].on('destroy', data => {
+             if(this.peerList[offerData.from]){
+             delete this.peerList[offerData.from];
+             }
+         })
+
+         //create character
+         //this.createCharacters();
+
+     }.bind(this));
+
+     // recieve answer
+     this.socket.on('reciveAnswer', function (answerData) {
+         this.peerList[answerData.to].signal(JSON.parse(answerData.answer));
+     }.bind(this));
+
+     // join room
+     this.socket.on('joinRoom', function (roomData) {
+         this.roomInData = roomData;
+         this.joinRoom(roomData);
+     }.bind(this));
+
+     // is ready
+     this.socket.on('isReady', function (readyData) {
+         if(this.myStream !== ''){
+           this.socket.emit('userReady',{to: readyData.from});
+         }
+     }.bind(this));
+
+
+     // update room data
+     this.socket.on('currentPlayersRoom', function (roomData) {
+       this.roomInData = roomData;
+     }.bind(this));
+
+
+     // listen player moved
+     this.socket.on('playerMoved', function (playerInfo) {
+       this.moveOtherPlayer(playerInfo);
+     }.bind(this));
+
+
+     // show players
+     this.socket.on('roomInfo', function (roomData) {
+       //set data
+       this.roomInData = roomData;
+
+       //create players
+       //this.createCharacters()
+     }.bind(this));
+
+
+     // log data
+     this.socket.on('log', function (logData) {
+      // console.log(logData);
+     }.bind(this));
+
+}
+
+
+
+
   }
