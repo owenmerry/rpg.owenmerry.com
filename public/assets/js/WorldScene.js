@@ -22,7 +22,6 @@ class WorldScene extends Phaser.Scene {
   
       //websocket start
       //this.socket = io();
-      //console.log('socket called', this.socket.id);
 
       var constraints = {
         video: {
