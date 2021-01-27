@@ -395,7 +395,7 @@ class WorldScene extends Phaser.Scene {
   
   
         // on enter
-        if(this.keyEnter.isDown){
+        if(this.keyEnter.isDown && 1===0){
           var foundChat = false;
           this.otherPlayers.getChildren().forEach(function (otherPlayer) {
             if(this.physics.overlap(this.container, otherPlayer) && foundChat === false){
